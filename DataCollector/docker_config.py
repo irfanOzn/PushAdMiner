@@ -15,8 +15,8 @@ vols = { docker_shared_dir_root + '/app'              :{'bind':docker_container_
 	       
 	      }
 '''
-permission_collection_script   = 'capture_permission_requests.js'
-notification_collection_script = 'capture_notifications.js'
+
+crawler_script = 'capture_screenshots.js'
 
 CRAWL_MAX_CONTAINERS = 3
 CRAWL_TIMEOUT = 180
