@@ -39,17 +39,36 @@ async function load_page(url,id,i_count,wait_time){
             
       try{
         
+        var the_interval = wait_time *1000 //in milliseconds
         var img_dir = home_dir+'screenshots/'+id
        
                    
         const page = await browser.newPage();
         await page.setViewport({ width, height })
         
+        var wait_interval = 5000
+          count=0  
+          
+        var trigger = await setInterval(async function() 
+        {
+            if (count >= the_interval )
+            {      
+              console.log(new Date(Date.now()).toLocaleString())
+              
+              //await browser.close();
+              console.log('visit ended')    
+              clearInterval(trigger);      
+              await process_ended(id)
+              return   
+            }
+            count = count+wait_interval  
+
+        }, wait_interval);
 
         try{
             console.log('visiting page')
             await page.goto(url );
-            await p.screenshot({ path: img_dir+'_page.png', type: 'png' });
+            await page.screenshot({ path: img_dir+'_page.png', type: 'png' });
          
         }
         catch(err){
@@ -65,6 +84,12 @@ async function load_page(url,id,i_count,wait_time){
       }
     })
 }
+
+
+async function process_ended(id){
+    console.log('crawl process ended :: '+id) 	
+  }
+  
 
 async function crawl_url(url, id, i_count,timeout){
     try{

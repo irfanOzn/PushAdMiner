@@ -31,7 +31,7 @@ def initiate_container(url, id, script_name, iteration_count,  container_timeout
         ## wait for display to be activated ##
         time.sleep(10)
         ## Exeecute the browser automation script
-        execute_script(url, id, script_name,  iteration_count, container_timeout-100)
+        execute_script(url, id, script_name,  iteration_count, container_timeout-60)
     except Exception as e:
         logging.info(e) 
 
@@ -43,8 +43,8 @@ def execute_script(url, id, script_name,  iteration_count, container_timeout):
         #logs = container.attach(stream=True,stdout=True,stderr=True)
         _,logs = container.exec_run(cmd=['node',script_name,url,id,str(iteration_count),str(container_timeout)], user=docker_user, detach=False, stream=True)
         time.sleep(container_timeout)        
-        for log in logs:
-            logging.info('Container_'+id+'LOG :: '+log)
+        # for log in logs:
+        #     logging.info('Container_'+id+'LOG :: '+log.decode('UTF-8'))
     
         logging.info(get_time() +'container_'+id+': Execution complete!!')	
         export_container(id, iteration_count)
@@ -63,14 +63,15 @@ def stop_container(id):
     except Exception as e:
         logging.info(e)
 
-def remove_containers():
-    while client.containers.list():		
-        try:
-            for c in client.containers.list():
+def remove_previous_containers():
+    		
+    try:
+        for c in client.containers.list():
+            if 'tes' in c.name:
                 c.stop()
                 c.remove()
-        except Exception as e:
-            print(e)
+    except Exception as e:
+        print(e)
   
 def export_container(id, count):
     container = client.containers.get('container_'+str(id))
@@ -81,12 +82,12 @@ def export_container(id, count):
     dir_path = dir_path+ str(count)+'/'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
-    with open(dir_path+'screenshots.tar', 'w') as f:
+    with open(dir_path+'screenshots.tar', 'wb') as f:
         bits, stat = container.get_archive('/home/pptruser/screenshots/')
         for chunk in bits:
             f.write(chunk)
    
-    with open(dir_path+'chrome_log.tar', 'w') as f:
+    with open(dir_path+'chrome_log.tar', 'wb') as f:
         bits, stat = container.get_archive('/home/pptruser/chromium/chrome_debug.log')
         for chunk in bits:
             f.write(chunk)
@@ -102,8 +103,8 @@ def docker_prune():
 
 
 def test():
-   
-    initiate_container('https://gauntface.github.io/simple-push-demo/','tes_100', 'capture_screenshots.js','0', 600 )    
+    remove_previous_containers()
+    initiate_container('https://gauntface.github.io/simple-push-demo/','tes_100', 'capture_screenshots.js','0', 180 )    
     
 if __name__== "__main__":
     test()
