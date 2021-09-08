@@ -22,7 +22,8 @@ async function load_page(url,id,i_count,wait_time){
   
     var home_dir= '/home/pptruser/'
     
-    await puppeteer.launch({ headless:false,  executablePath:home_dir+'chromium/chrome',
+    await puppeteer.launch({ headless:false,  
+                    // executablePath:home_dir+'chromium/chrome',
                              userDataDir:home_dir+'chrome_user/',
                              args: [
                                     '--enable-features=NetworkService',
@@ -41,16 +42,61 @@ async function load_page(url,id,i_count,wait_time){
         
         var the_interval = wait_time *1000 //in milliseconds
         var img_dir = home_dir+'screenshots/'+id
-       
+        
+        /*Get screenshot whenever new tab opens and close page after 5 minutes */
+        browser.on('targetcreated', async function(target){    
+        
+          if(target._targetInfo.type=='page'){
+            var p = await target.page()                
+            p.once('load',  async function(){
+              console.log('page loaded')
+              try{
+                  try{
+                      await p.waitForNavigation('networkidle2', timeout=90000)}
+                  catch(e)
+                  {
+                    console.log('timeout!!')
+                  }
+
+                  // Check if Service worker was installed after a delay of 30 secs
+                  await setTimeout(async function() {
+                    const sw_found = await p.evaluate(()=> { return navigator.serviceWorker.controller} )
+                    if (sw_found!= null)
+                      console.log('Service Worker Found!!!')
+                  }, 30000)
+
+              }catch(e){
+                console.log(e)
+              } 
+            })   	
+          }
+
+      })
                    
         const page = await browser.newPage();
         await page.setViewport({ width, height })
         
+        // Intercept and block requests
+        await page.setRequestInterception(true)
+
+        // Log all the requests made by the page
+        page.on('request', (request) => {
+          console.log('>>', request.method(), request.url())
+          request.continue()
+        })
+
+        // Log all the responses 
+        page.on('response', (response) => {
+          console.log('<<', response.status(), response.url())
+        })
+
         var wait_interval = 5000
-          count=0  
-          
+        count=0  
+        
+        // checks if the timeout has exceeded every few seconds 
         var trigger = await setInterval(async function() 
-        {
+        {   
+            // close the browser if the run exceeds timeout interval
             if (count >= the_interval )
             {      
               console.log(new Date(Date.now()).toLocaleString())
@@ -67,12 +113,13 @@ async function load_page(url,id,i_count,wait_time){
 
         try{
             console.log('visiting page')
-            await page.goto(url );
+            await page.goto(url , { waitUntil: 'networkidle0', timeout: 90000});
             await page.screenshot({ path: img_dir+'_page.png', type: 'png' });
          
         }
         catch(err){
             console.log(id+" :: page load timeout")
+            console.log(err)
         }
           
         console.log('page visited')
